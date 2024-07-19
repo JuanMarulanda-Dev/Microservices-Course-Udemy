@@ -1,0 +1,397 @@
+Microservicios con Spring Cloud
+
+Caracteristicas
+    * Autonomos
+    * Especializados
+    * Registro y auto-descubrimiento de servicios (Service Descovery)
+    * Escalado Flexible
+    * Tolerancia a fallos
+    * Balanceo de cargas
+    * Configuracion centralizada
+    * Libertad tecnológica
+    * Agilidad y equipos más pequeños
+    * Ciclo de desarrollo más cortos
+    * Código reutilizable
+
+
+Componentes que veremos en el curso
+    * Spring Boot
+    * Spring IoC
+    * Spring Data JPA e Hibernate
+    * API REST
+    * Spring cloud
+    * Servidor Eureka Netflix
+    * Eureka Client
+    * RestTemplate (Cliente HTTP)
+    * Feign (Cliente HTTP)
+    * Ribbon (Load Balancer)
+    * Hystrix (Ahora llamado Resilience4J - Circuit Bracker)
+    * Gateway Zuul
+    * Spring Cloud Server Config
+    * Spring Security OAuth2
+    * JWT (JSON Web Token)
+    y más...
+
+Los microservicios= en pocas palabras, son un conjunto de componentes pequeños y autonomos que colaboran entre si!
+
+Ventajas
+    * Nueva tecnologa y adopcion de nuevos procesos.
+    * Reducción de costo (Solo se usa lo que se necesita cuando se necesita)
+    * Ciclo de liberacion más rapidos
+    * Equipos de desarrollo más pequeños
+
+Caracteristicas
+    * Funcion Única
+    * Independitens (No conocen la implementacion de los demás servicios)
+    * Registro y Auto-descubrimiento de servicios (Abstrae las URL y los puertos y depende de una abtraccion más no una URL en concreto)
+    * Auto escalado y agil
+    * Confiabilidad y tolerancia a fallos (Circuit Bracker)
+    * Balanceo de cargas (Ribbon)
+    * Configuracion centralizada
+
+@SpringBootApplication esta conformado por:
+
+@SpringBootConfiguration -> Se basa en las dependencias que tenemos y se va a encargar de configurar todo lo que tnemos ahí, ejemplo Hibernate, conexion a H2, JPA, etc
+@EnableAutoConfiguration -> Se encarga de toda la auto configuracion de la aplicacion auto contenida
+@ComponentScan -> Se encarga de encontrar todas las clases marcadas con los estereotipos de Spring (@Bean, @Component, @Repository, @Service)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Eureka Server
+    -Es un servidor de registro y descubrimiento de enpoints
+    -cuando un servicio deja de funciona envia un Heart Beat cada 30 sg si este en tres ciclo no desponde es decir en 90sg va a marcar como no disponible esta instancia y la elimina de eureka
+    -tambien para lo contrario cuando este servicio vuelve a estar disponible, manda un Heart Beat como 30 por tres ciclos y si el servicio responde lo vuelve a registrar en eureka para que sea descubierto pro los interesados en llamar este servicio
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Ribbon (Load Balancer)
+    -Actualmente ribbon no es compatible con las nuevas versiones de Spring Boot, Ribbon solo esta disponible para las versiones 2.3 o inferiores
+    -Para las demás versiones de Spring Boot se utilia Spring Cloud Load Balancer (No se puede utilizar sin Spring Cloud Eureka), que por defecto la implementea Spring Cloud Api Gateway
+    -El tiempo por defecto de un timeout en ribbon y hystrix es de 1 segundo.
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Zuul (Api Gateway)
+    No es compatible con las nuevas versiones de Spring Boot, Zuul solo esta disponible para las versiones 2.3 o inferiores
+    Para las demás versiones se utiliza Spring Cloud Api Gateway
+
+Caracteristicas
+    -Enrutamiento Dinamico
+    -balanceo de carga por defecto con ribbon (no tenemos que hacer nada)
+    -Por defecto utiliza el algoritmo de Round Robbin siempre y cuando los microservicios esten al mismo nivel de salud, no tengan latencia, etc
+    -Zuul por debajo utiliza filtros, es el pila principal, existen tres tipo de filtros: PRE, POST y ROUTE
+    -Zuul no trabaja con programacion reactiva, es trabaja con el API servlet (Bloqueante)
+
+Filtros de Zuul
+    PRE: -> Se ejecuta antes de que el request sea enrutado -> se usa para pasar datos al request
+    POST: -> Se ejecuta depues de que el request haya sido enrutado -> Se usa para modificar la respuesta
+    ROUTE: -> Se ejecuta durante el enrutamiento del request, aqui se resuelve la ruta -> Se usa para la comunicacion con el microservicio
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Spring Cloud API Gateway
+    Es un Servidor Enturador de enrutamiento dinamico.
+    Compuesto por filtros: Autorizacion, seguridad, monitoreo, etc, podemos crear nuestros propios filtros
+    Diferencias con Zuul: este componente de spring utiliza porgramacion reactiva para sus enrutamientos, lo que lo hace más dinamico y rapido
+
+caracteristicas
+    - Al API Gateway se le conoce como: Puerta de enlace, acceso centralizado, servidor Age o perimetral
+    - Enrutamiento dinamico de los microservicios
+    - Balanceo de carga (Podemos usar Ribbon o el propio de Spring Cloud Load Balancer)
+    - Maneja filtros propios
+    - Permite extender funcionalidad. (Manejar la seguridad en general de la aplicación)
+    - Por detras trabaja con programacion reactiva Spring Web Flux (No bloqueante)
+    - No es compatible con OAuth2 porque trabaja con programación reactiva (Investigar como hacerlo...)
+
+Para crear un Filtro Global
+    GlobalFilter (Interface)
+        -Se utiliza para definir un filtro de forma global que se va aplicar a todas las peticiones que pasen por el API Gateway.
+        -Con la interface Ordered podemos especificar el orden de ejecucion de cada uno de los filtros.
+
+Para crea un Filtro Personalizado
+    AbstractGatewayFilterFactory<T> (Clase Abstracta)
+        -Se utiliza para crear filtros personalizados que se pueden utilizar en rutas especificas y no de forma global, este recibe un Generic que hace referencia al parametro que se le va a pasar
+        -Para manejar el PRE y POST de las peticiones debemos implementar el motodo abstracto de AbstractGatewayFilterFactory llamado apply (Trabaja con WebFlux (Mono))
+        -Para darle un orden a los parametros que recibe este filtro debo sobreescribir el metodo shortcutFieldOrder.
+        -Para darle un nombre personalizado al filtro diferente al nombre del archivo debo sobre escribir el metodo name.
+
+Filtros que vienen por defecto en Spring Cloud Api Gateway
+    AddRequestHeader -> Agregar parametros personalizados a los request (recibe: nombre del header y el valor) (PRE)
+    AddResponseHeader -> Agregar parametros personalizados a los response (recibe: nombre del header y el valor) (POST)
+    AddRequestParameter -> Agrega un parametro a la peticion (recibe nombre del parametro y valor) (PRE)
+    SetResponseHeader -> Modifica un parametro ya existente en los headers (Recibe nombre del header y el valor) (POST)
+    y muchos más...
+
+Que son los Predicates
+    Son reglas del request -> para que esta ruta a la que desea acceder se pueda ejecutar debe cumplir con las condiciones indicadas
+
+Predicates que viene por defecto:
+    - Header -> El request debe tener este header (Recibe el nombre del header y valor que puede ser una expresion regular) \d+ -> expresion regular para que vea cualquier valor
+    - Method -> El request debe ser de un tipo especifico (Recibe el nombre de los verbos HTTP separados por comas)
+    - Query -> El request en la URL debe tener un parametro especifico con un valor especifico (recibe nombre del parametro y valor)
+    - Cookie -> El request debe tener una cookie especifica con un valor especifico (recibe nombre del parametro y valor)
+    - After -> El request debe ser despues de una fecha
+    - Before -> El request debe ser antes de una fecha
+    - Between -> El request debe ser entre un rango de fechas
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Tolerancia a Fallos (Circuit Bracker)
+
+Resilience4J
+Es una libreria para trabajar la resiliencia y tolerancia a fallos e implementa el patron cortocircuito (Circuit Bracker),
+diseñada con programacion funcional y expresiones lamda de java 8 y anotaciones
+Es una libreria de Spring Boot disponble para versiones superirores a las 2.4, para versiones inferiores a las 2.3 sigue utilizando Hystrix
+
+
+Estados del patron cortocircuito (Circuit Bracker)
+
+    El patro circuito maneja tres estados
+        * Cerrado: cuando todo sale bien. Inicialmente el estado es cerrado
+        * Abierto: Cuando la tasa de fallas supera el umbral. En este estado, las solicitudes al microservicio no se realizaran
+                   cuando haya pasado un cierto limite de tiempo cambiara de estado Semiabirto 
+                   (En este estado se pasa 60 seg por defecto, depues de este tiempo el estado abierto, va a pasar a semi abierto a ver si recobro el servicio que estaba fallando)
+        * Semiabierto: Se ejecutaran varias solicitudes para saber si el microservicio esta funcionando con normalidad o no.
+                       Si tiene exito volvera al estado cerrado, si aún falla volvera al estado abierto.
+
+Parametros de configuracion del circuit bracker (Criterios por defecto)
+
+    * slidingWindowSize(100) = Tamaño de la ventana deslizate, esto es un muestreo de cierta cantidad de peticiones a un microservicio en particular
+                             y dentro de esta cantidad de peticiones se va a registrar un porcentaje de fallas, si este porcentaje de falla supera el umbral permitivo se va abriri el circuito
+    * failureRateThreshold(50) = Tambien conocido como el umbral, hace referencia al procentaje de maximo de fallas que va a permitir antes de abrir el circuito
+    * waitDurationInOpenState(60000ms) = El tiempo en que un microservicio va a permanecer en estado abierto, donde no recibe más peticiones, depues de este tiempo va a pasar a estado Semiabierto
+                                        a ver si se puede recuperar.
+    * permittedNumberOfCallsInHalfOpendState(10) = La cantidad de peticiones que se van a hacer cuando se pase al estado semiabierto para corroborar si la disponibilidad del servicio se restablecio o no
+    * slowCallRateThreshold (100) = El Umbral de lentitud de las peticiones, si 100 peticiones son lentas entonces va abrir el circuito, lo recomentable es dar un % de cantidad de peticiones lentas
+    * slowCallDurationThreshold (60000ms) = Tiempo maximo para considerar que una peticion es lenta, este es el tiempo que se le da a una peticion para responder, si pasa este tiempo se va a marcar como peticion lenta
+
+
+Para configurar los parametros del cortocircuito
+    Por Medio de un Bean
+        * crear un bean del tipo de retorno Customizer<Relisience4JCircuitBrackerFactory> defaultCustomizer()
+        * Al crear la configuracion por este lado solo lo podemos usar con CircuitBreackerFactory (Programatica)
+        *Ejemplo:
+
+            @Bean
+            public Customizer<Resilience4JCircuitBreakerFactory> defaultCustomizer(){
+                return factory -> factory.configureDefault(id -> {
+                    return new Resilience4JConfigBuilder(id)
+                            .circuitBreakerConfig(CircuitBreakerConfig.custom()
+                                    .slidingWindowSize(10)
+                                    .failureRateThreshold(50)
+                                    .waitDurationInOpenState(Duration.ofSeconds(10L))
+                                    .permittedNumberOfCallsInHalfOpenState(5)
+                                    .slowCallRateThreshold(50)
+                                    .slowCallDurationThreshold(Duration.ofSeconds(2L))
+                                    .build())
+                            .timeLimiterConfig(TimeLimiterConfig.custom().timeoutDuration(Duration.ofSeconds(3L)).build())
+                            .build();
+                });
+            }
+
+    Por propiedades (Tiene prerelacion sobre la forma programatica con Bean)
+        * Por medio de un archivo de propiedades se encarga de establecer estos valores
+        * De esta forma solo se pueden implementar anotaciones no se puede usar el Relisience4JCircuitBrackerFactory
+        * Ejemplo: 
+            resilience4j:
+                circuitbreaker:
+                    configs:
+                    defecto:
+                        sliding-window-size: 6
+                        failure-rate-threshold: 50
+                        wait-duration-in-open-state: 20s
+                        permitted-number-of-calls-in-half-open-state: 4
+                        slow-call-rate-threshold: 50
+                        slow-call-duration-threshold: 2s
+                    instances:
+                    items:
+                        base-config: defecto
+                timelimiter:
+                    configs:
+                    defecto:
+                        timeout-duration: 2s
+                    instances:
+                    items:
+                        base-config: defecto
+Anotaciones del Circuit Bracker
+
+Tenemos dos anotaciones, una para el time limit y otra para el circuitbreaker
+
+
+@CircuitBreacker = se usa para definir el nombre y el fallback del cortocircuit 
+@TimeLimiter = Se usa para configurar el timeout, simpre debe retornar un CompletableFuture, pero no maneja los estado como la anotacion anterior
+
+
+Para poder agregar el Resiliente4J a el spring cloud api gateway se puede hacer mediente un filtro donde le puedo especificar el cortocircuito que va a menjar y para que status code va a funcionar
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Spring cloud Config Server
+
+    Es un servidor de configuraciones centralizado donde cada uno de lo microservicios van a ir a consultar sus configuraciones
+
+    Para poder generar el serviro hay que instalar la dependencia llamada spring-cloud-config-server y para los microservicios que van a consultar los archivos de configuracion al server se marcan con spring-cloud-config-client
+
+    Para iniciar el servidor de configuracion la clase main de la aplicacion spring boot se debe marcar con @EnableConfigServer
+
+    Podemos tener varios archivos de configuración
+
+    Para leer la configuracion en los controladores se puede utilizar la anotacion @Value("${nombre_propiedad}")
+
+    para definir un perfil de archivo de configuraciones se necesita especificar spring.profiles.active=dev donde se especifica que archivo se necesita para poder funcionar
+    lor archivos de configuracion deben terminar con el nombre del perfil ejemplo service-items-dev
+
+    para los cliente de configuracion se debe crear un archivo bootstrap.properties
+
+    Actualizar los cambios que se hagan en archivo de configuraciones en tiempo real sin reiniciar la aplicación
+    esto se puede hacer con la anotacion @RefreshScope y  Spring Boot Actuactor
+
+    Actuator es una serie de características adicionales que te ayudan a monitorizar y gestionar tu aplicación cuando es desplegada en producción.
+    Actuator permite monitorizar la aplicación, recopilación de métricas, comprender el tráfico o entender el estado de nuestra base de datos de manera trivial.
+
+    Para que la anotacion @RefresScope funcione se debe exponer las rutas de actuactor para que refresquen los archivos de configuracion, para lograr eso en el archivo de boostrap.properties se agrega la propiedad
+    management.endpoints.web.exposure.include=* // deja publicas las rutas de actuactor
+    
+    Para refrescar las propiedades se debe hacer una peticion te tipo POST al servicio que este utilizando la anotacion @RefresScope y tenga actuactor
+    con la ruta /actuactor/refres para actualizar las propiedades personalizadas.
+
+    solo se pueden cambiar propiedades personalizadas de nosotros, conexiones a base de datos o puertos se debe reiniciar el servidor
+    
+    El servicio de configuracion puede trabajar con archivos locales con Git o archivos remotos en un repositorio de GitHub
+
+    Todo Config Client debe tener el archivo de bootstrap.properties para poder especificar la ruda de donde esta el servidor de configuraciones
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Servicio Commons> Reutilizando Librerias
+
+    Para crear una libreria donde vamos a compartir informacion en comun entre los microservicios se debe crear un proyecto de spring boot pero se va a eliminar el metodo main que inicializa
+    la aplicacion porque eso no va a ser una aplicacion si no una libreria, y en el archivo pom.xml se elimina el plugin de maven
+
+    Agregamos todas las clases o componentes que van a ser en comun entre varios microservicios
+
+    Se debe tener configurado el JAVA_HOME
+
+    Depues se debe generar el jar con el siguente comando para windows - mvnw.cmd install para linux mvnw install
+
+    Para agregar el jar como una dependencia en el proyecto donde lo vaya a utilizar necesito agregar la dependencia en el microservicio que va a usar commons
+    la dependencia luce algo así
+
+    <dependency>
+        <groupId>com.formacionbdi.springboot.app.commons</groupId>
+        <artifactId>springboot-servicio-commons</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </dependency>
+
+    Se debe exluir la auto configuración de conexion a base de datos por DataSource por medio de la anotacion
+    @EnableAutoConfiguration(exclude = {DataSourceAutoConfiguration.class})
+
+    Para especificar que un microservicio va a tomar una clase de otro paquete de otro componente commons se debe especificar la ruta de donde se encuentra
+    @EntityScan({"com.formacionbdi.springboot.app.commons.models.entity"})    
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+JWT (JSON Web Tokens)
+
+    Es un estandar abierto para implementar seguridad en las API REST basado en tokens
+
+    Si no se especifica un tiempo de caducidad a un JWT este va a estar disponible de forma infinita, es recomendable agregar tiempo de caducación a los JWT.
+
+    Forma de trabajar con Seguridad
+        * Variables de Session (StateFull)
+        * Tokens (StateLess)
+        
+
+    Partes de un JWT 
+        * Header -> Tipo de algoritmo en que se va a encriptar
+        * Payload -> Informacion que le vamos a meter al token y la que nosotros queramos colocar
+        * Verify Signature -> Es la firma de token para saber si este fue modificado o no, este contiene el header y el payload encriptados en base 64 y el secret de la aplicación
+
+    Este JWT se puede guardar en dos partes por parte del Frontend
+        * Local Storage -> Cuando se quiere guardar el token por un tiempo más prolongado, dias, semanas, etc
+        * Session Storage -> Cuando queremos que la sesion se tenga que vovler a iniciar cuando se cierre y se vuelva abrir el navegador
+
+Spring Security con OAuth2 utilizando JWT (En Zuul)
+
+    Provee caracteristicas de seguridad para aplicaciones Java EE
+    Maneja componentes de Autenticación y Autorización
+
+    OAuth2 es un protocolo estandar de autorizacion que permite a aplicaciones de terceros (Angular, React, Vue, etc) autenticarse con usuarios, roles que se encuentran en otra aplicación
+
+    Spring Security OAuth2 se compone de dos partes
+        - Authorization Server (JWT) =  Se encarga de realizar la autenticacion del usuario, si es valida la autenticacion se va a encargar de generar un Token de acceso.
+        - Resource Server = Se encarga de gestionar los permisos y accesos a los enpoints que tienen seguridad, por debajo se habilita un filtro llamado OAuth2AutenticationProcessingFilter
+                            el cual se utiliza para validar y dar acceso a un Request.
+
+    Para poder utilizar OAuth2 se debe utilizar la version 2.3.8.RELEASE porque apartir de la version 2.4 de elimina las funcionen para poder generar el token y solo se deja el cliente
+    para poder generar el token en versiones superiores a las 2.4 hay que utilizar librerias externas que se encargen de la generacion de los tokens.
+
+Para poder exponer una ruta de una manera mucho más rapida con pocas lineas de codigo y donde se ahorra tener que crear el controller y los servicios
+Para eso se debe implementar la libreria Rest Repositorio, para mi es una mala practica porque acoplamos demaciado el código, esto seria interesante para un microservicio que no tenga una logica muy compleja y solo sea implementar un CRUD
+
+Construyendo el servidor de autenticacion
+    La ruta por defecto que utiliza spring security para obtener un token de autenticación es "oauth/token"
+
+    * SpringSecurityConfig
+
+        - Para trabajar con Spring Security necesitamos crear un archivo de configuracion que se llame "SpringSecurityConfig" y este estienda de la clase "WebSecurityConfigurerAdapter"
+          Se debe sobre escribir el metodo de "configure" que recibe un "AuthenticationManagerBuilder" donde yo voy a especificar como va a ser la autenticacion en mi aplicación
+          mediante un AuthenticationManager.
+
+        - desde acá le podemos decir a Spring Security que podemos escuchar los eventos cuando se haga login, cuando falle un login, etc
+
+    * AuthorizationServerConfig
+
+        - En esta configuracion es donde vamos a especificar como se comprota el Servidor de Autorización que es el servidor donde nosotors vamos a hacer peticiones para poder obtener el token
+
+        - Para poder trabajar con el servidor de autenticacion debemos extender de la clase llamada "AuthorizationServerConfigurerAdapter" y anotar la clase con @Configuration y @EnableAuthorizationServer
+
+        - Existen una socrecarga de metodos que hay que sobreescribir que se llaman configure pero cada uno se encarga de una tarea diferente
+            * El que recibe el parametro de tipo "AuthorizationServerEndpointsConfigurer" = Se utiliza para configurar los enpoints de servidor de autorización, acá vamos a especificar cual va a ser el AuthenticationManager
+              que vamos a manejar para la aplicación, tambien se debe especificar como se almacena y se recuperan los tokens.
+            
+            * El que recibe el parametro de tipo "ClientDetailsServiceConfigurer" = Se utiliza para configurar los detalles de los clientes (aplicaciones) que pueden acceder a los servicios protegidos por el servidor de autorizacion
+              Acá podemos expecificar la duracion de token, la duracion del token de refreco, los tipos de concesion para el cliente (password, refresh_token), los scopes (read, write) y las credenciales de la aplicacion que va a tener permiso de usar los enpoints
+
+            * El que recibe el parametro de tipo "AuthorizationServerSecurityConfigurer" = Se utiliza para controlar quien puede acceder a ciertos endpoints del servidor de autenticación
+             Podemos especificar quienes pueden validar el token de acceso y quien puede acceder a las rutar para generar el token.
+
+        - Para poder agregar más informacion dentro del payload del JWT necesitamos implementar la interfaz "TokenEnhancer" y sobre escribir el metodo llamado "enhance" que recibe dos parametros
+          "OAuth2AccessToken" y  "OAuth2Authentication" donde yo debo encargarme de asignarle un hasmap al accessToken
+          para agregarle informacion al accessToken se debe hacer un cast de OAuth2AccessToken a DefaultOAuth2AccessToken para poder hacer uso de la funcion setAdditionalInformation y pasarle el hasMap con la nueva información
+
+
+Construyendo el Servidor de Recursos (Solo es compatible con Zuul no con Api Gateway)
+    Se encarga de proteger todas las rutas de nuestros microservicios y dar acceso solo a quienes esten autorizados y tengan permiso
+
+    Debemos crear una clase que se encargue de la configuracion del servidor de recursos, esta clase de configuracion se debe marcar con @Configuration y @EnableResourceServer
+    y heredar de "ResourceServiceConfigurationAdapter"
+
+    Depues necesitamos implementar dos metodos que se llaman configure (Sobre carga)
+        * El que recibe el parametro ResourceServerSecurity = Para validar el token, para esto necesitamos traer del servidor de seguridad los beans de como se crea y se guarda el token para poder hacer la validacion correspondiente
+        * El que recibe el parametro HttpSecurity = Para especificar que rutas pueden ser publicas, cuales necesitan autenticacion, cuales rutas se les va a dar que permiso dependiendo al rol que aparece en el token.
+
+
+Actualizacion del token
+
+Nosotros antes de que caduque el token o incluso depues de que haya caducado, podemos hacer uso del refresh_token para vovler a genera un token valido y seguir usando nuestra aplicación
+Por eso es importante hacer que el refresh_token tenga un tiempo de caducación mayor que el del token.
+
+Para hacer el refresh del token necesitamos hacer la peticion al enpoint del servidor de autenticacion por medio de /oauth/token de tipo POST y mandarle
+por medio de parametros en grant_type que sea refresh_token y en otro parametro el refresh_token
+
+
+CORS - Cross Origin Resource Sharing - (Intercambio de recurso de origen cruzado)
+    Basicamente son peticiones que se hacen desde diferentes dominios por ejemplo, con angular, con jquery, con otra API que esta en otro dominio.
+
+    Para configurar CORS en nuestra prueta de entrada con Zuul necesitamos ahcer lo siguiente:
+        * Crear un @Bean que va a retornar un CorsConfigurationResource, acá es donde vamos a especificar que origenes vamos a permitir, que metodos vamos a permitir, a que rutas aplican estas validaciones, que header tiene que tener los request, etc
+        * Registrar esta configuracion de CORS en nuestro servidor de recursos mediante .cors().configurationSource(corsConfigurationResource())
+        * (Opcional) Crear un Filtro global para aplicar las politicas de CORS a todos nuestros microservicios, para hacer esto se crea un @Bean que retorne el tipo FilterRegistrationBean<CorsFilter>
+          donde vamos a aplicar tambien CorsConfigurationResource que ya habiamos creado anteriormente.
+
+
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------

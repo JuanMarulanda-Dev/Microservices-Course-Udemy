@@ -1,0 +1,21 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+      - id: servicio-productos #Nombre del servicio
+        uri: lb://servicio-productos #Nombre del servicio que va a trabajar con Load Balancer
+        predicates: #Para mapear a una ruta, condicionar agregar ciertas reglas de las rutas
+          - Path=/api/productos/**
+        filters:
+          - StripPrefix=2 # Es encesario este filtro porque la ruta Path esta compuesto por dós secciones ejm api y product
+          - EjemploCookie=Hola mi mensaje personalizado, usuario, AndresGuzman
+      - id: servicio-items
+        uri: lb://servicio-items
+        predicates:
+          - Path=/api/items/**
+        filters:
+          - StripPrefix=2
+          - AddRequestHeader=token-request, 123456
+          - AddResponseHeader=token-response, 12345678
+          - SetResponseHeader=Content-Type, text/plain
+          - AddRequestParameter=nombre, andres
