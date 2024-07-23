@@ -393,5 +393,32 @@ CORS - Cross Origin Resource Sharing - (Intercambio de recurso de origen cruzado
           donde vamos a aplicar tambien CorsConfigurationResource que ya habiamos creado anteriormente.
 
 
+Tambien podemos manejar Eventos en de SuccessLogin and FailureLogin en SpringSecurityConfig para hacer esto se deben hacer lo sigueinte:
+    * Se debe crear una clase para manejar los eventos e implementar la interface AuthenticationEventPublisher.
+    * se hace la Inyección de dependencias de esta implementacion en la clase de SpringSecurityConfig 
+    * En el configure que recibe un parametro de AuthenticationManagerBuilder se debe agregar la sigueinte linea .authenticationEventPublisher(eventPublisher) para que los eventos sean leidos en la implementacion de AuthenticationEventPublisher;
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Spring Security con OAuth2 utilizando JWT (En Api Gateway)
+    - Spring Cloud Api Gateway esta desarrollado con programacion reactiva (Webflux) en vez del Api servlet como lo es Zuul.
+
+    - El estandar OAuth2 no es compatible con la nueva version de Api Gatway de Spring Cloud, por lo cual se debe buscar otra opcion para validar el token, se puede seguir usando la forma de genera el token de 
+    OAuth2 pero para agregar seguridad a las rutas de nuestro sistema se tiene que hacer por otro lado. 
+
+    - Para agregar seguridad a nuestras rutas en este cado debemos usar la libreria llamada JJWT (Json Web Token para aplicaciones en Java o Android)
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Programacion Reactiva Web Flux
+    La programación reactiva esta orientada a flujos de datos simila a listas y arreglos pero de manera asincrona y con programación funcional usando expresiones lambda,
+    nos permite mediante operadores ir transformando este flujo hasta un resultado final.
+    Caracteristicas principales de la programacion reactiva
+    * Inmutable
+    * Asincrono
+    * Cancelable
+    * Orientado a eventos
+    
+    Tipos de flujo reactivo
+    * Mono [0,..1] un solo elemento
+    * Flux [0,..N] varios elementos
