@@ -303,7 +303,6 @@ JWT (JSON Web Tokens)
         * Variables de Session (StateFull)
         * Tokens (StateLess)
         
-
     Partes de un JWT 
         * Header -> Tipo de algoritmo en que se va a encriptar
         * Payload -> Informacion que le vamos a meter al token y la que nosotros queramos colocar
@@ -422,3 +421,89 @@ Programacion Reactiva Web Flux
     Tipos de flujo reactivo
     * Mono [0,..1] un solo elemento
     * Flux [0,..N] varios elementos
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Trazabilida distribuida con Spring Cloud Sleuth y Zipkin
+
+    Que es Sleuth?
+        * Es una dependencia que nos provee una solucion de trazado distribuido para Spring Cloud
+        * Permite identificar la peticon completa de un microservicio, como un todo, y en cada llamada individual a otros microservicios.
+        * Nos ayuda a detectar problemas de latencia, medir el rendimiento, buscar y detectar problemas.
+
+        Atributos
+            * TraceId = Identificador asociado con la peticion que viaja entre los microservicios. (Peticion global que viaja a travez de multiples microservicios)
+            * SpanId = identificador de la unidad de trabajo de cada llamada a un microservicio. (Llamada a un microservicio)
+
+            Entonces una traza (Trace) esta formado por un conjunto de span.
+        
+        Atributos Annotaction 
+            * Mide los timepos de entrada y salida de cada peticion, latencia, y salud de los servicios
+
+            - Client Sent (CS) = El cliente inicia una petición.
+            - Server Recived (SR) = El servidor recibe y procesa la petición.se calcula de la sigueinte forma (latencia = SR - CS)
+            - Server Sent (SS) = La respuesta en enviada al servicio cliente, se calcula de la sigueinte forma (tiempo procesamiento = SS - SR)
+            - Client Recived (CR) = El cliente recibe la repuesta del servidor. se calcula de la siguiente forma (tiempo total traza = CR - CS)  
+    
+    Ejemplo de traza de Sleuth
+        * INFO [service-name, TraceId, SpanId, Boolean] 
+        Si el ultimo parametro es un false es porque no se esta exportando la traza pero si es un true es porque se exporta la traza a ZipKin
+        
+
+    Implementando Spring Cloud Sleuth
+        Se debe agregar las dependencia de Sleuth solo en los microservicios a los cuales yo les quiera hacer un seguimiento. Y Listo ya no se tiene que hacer nada más
+
+ ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+    Que es Zipkin?
+        * Es una plataforma que nos va a permitir visualizar la informacion que se recibe a travez de Spring Cloud Sleuth.
+        * Este servidor guarda las trazas y nos permite analizar esta informacion.
+
+    Caracteristicas
+        * Servidor para guardar las trazas y monitorización.
+        * Integra las funcionalidades de Spring Cloud Sleuth.
+        * Interfaz de usuario para visualizar el arbol de llamadas de cada traza.
+        * Su objetivo es consultar la salud del ecosistema.
+        * Cuando se agrega la dependencia de Zipkin ya implicitamente trae la libreria de Sleuth.
+        * Se pueden enviar las trazas al servidor Zipkin por medio de un Broker de mensajeria por ejemplo Rabbit MQ o Kafka.
+
+    Forma de Obtener Zipkin
+        * A Travez de Docker
+        * A Travez de Java (un Jar)
+        * A Travez de descargar el codigo fuente del GitHub (Muy leto el proceso)
+
+    Implementando Zipkin
+        * Para que los microservicios de Spring boot puedan exportar las trazas se debe agregar la dependecia de Zipkin.
+        * En el archivo 
+
+    Nota: 
+        En las ultimas versiones de Spring Cloud se deben agregar las dependencias de Sleuth y Zipkin por separado.
+        Zipkin Server por defecto guarda la informacion en memoria.
+
+
+    que se debe agregar en application.properties
+        * spring.sleuth.sampler.probability=1.0 = en el 100 porcierto de las peticion se va a registrar la traza.
+        * spring.zipkin.base-url= http://localhost:9411/ = Esta es la ruta donde se encuentra por defecto el servido de zipkin, por defecto es la ruta del local host
+
+    Agregar Atributos o tags perzonalizados a la traza
+        * Inyectar el componente Tracer de Brave donde vayamos a personalizar la traza.
+        * Para agregar un tag se hace lo siguiente = tracer.currentSpan().tag("error.mensaje", error);
+
+    Configurando y conectando RabbitMQ en microservicios y Zipkin
+        * Se debe instalar la dependencia de RabbitMQ en cada uno de los clientes que va a dejar trazas en Zipkin
+        * Hay que decirle a Zipkin que utilice RabbitMQ y este pendiente de una cola para leer los mensajes, esto se hace configurando las variables de entorno:
+            - RABBIT_ADDRASSES = URL de RabbitMQ (Ejm localhost:5672)
+        * En los clientes Zipkin se deben agregar las siguientes properties
+            - spring.zipkin.base-url=http://localhost:9411/
+            - spring.zipkin.sender.type=rabbit (Con esto se especifica que las trazas se vana a enviar al servidor de Zipkin por medio de colas de mensajeria de rabbit)
+    
+    Configurando MySQL Storage en Sipkin Server
+        * Tenemos que ir al repositorio de GitHub y ver los detalles de las variables de entorno que se necesitan para las conexiones a base de datos, ejemplo cassandra
+        * Nosotros tenemos que tomar el SCHEMA del repositorio de Github para poder crear las tablas donde se va almacenar la info de monitoreo de Sleuth.
+        * Para conectar a MySQL se deben agregar las siguientes variables de entorno:
+            - STORAGE_TYPE=mysql -> Motor de base de datos que se va a utilizar
+            - MYSQL_USER=root -> usuario de mysql con el que voy a ingresar (Se recomienda crear uno y darle solo provilegios de DML)
+
+ ----------------------------------------------------------------------------------------------------------------------------------------------------------------
+    Despliegue de microservicios en Contenedores Docker
+    
